@@ -126,11 +126,49 @@ export class Tank {
     const pos = this.physicsBody.body.GetPosition();
     let quat = Quaternion.createFromEuler(this.rotation, 0, 0, 'YXZ');
     
-    // Cast a ray down to find the ground normal for smooth banking
-    let targetUp: vec3 = [0, 1, 0];
-    const ray = gfx3JoltManager.createRay(pos.GetX(), pos.GetY() + 0.5, pos.GetZ(), pos.GetX(), pos.GetY() - 2.0, pos.GetZ());
-    if (ray.normal) {
-        targetUp = [ray.normal.GetX(), ray.normal.GetY(), ray.normal.GetZ()];
+    // Cast rays from 4 corners down to find the ground normal for smooth banking
+    const hw = 1.4; // Half-width
+    const hd = 1.6; // Half-depth
+
+    const sinYaw = Math.sin(this.rotation);
+    const cosYaw = Math.cos(this.rotation);
+    const fx = -sinYaw, fz = -cosYaw;
+    const rx = cosYaw, rz = -sinYaw;
+    
+    const cx = pos.GetX();
+    const cy = pos.GetY();
+    const cz = pos.GetZ();
+
+    const getHitPoint = (dx: number, dz: number): vec3 => {
+      const wx = cx + rx * dx + fx * dz;
+      const wz = cz + rz * dx + fz * dz;
+      const ray = gfx3JoltManager.createRay(wx, cy, wz, wx, cy - 3.0, wz);
+      if (ray.fraction < 1.0) {
+        return [wx, cy - ray.fraction * 3.0, wz];
+      }
+      return [wx, cy - 1.5, wz]; 
+    };
+
+    const fl = getHitPoint(-hw, hd);
+    const fr = getHitPoint(hw, hd);
+    const bl = getHitPoint(-hw, -hd);
+    const br = getHitPoint(hw, -hd);
+
+    const vecFront = UT.VEC3_SCALE(UT.VEC3_ADD(fl, fr), 0.5);
+    const vecBack = UT.VEC3_SCALE(UT.VEC3_ADD(bl, br), 0.5);
+    const vecLeft = UT.VEC3_SCALE(UT.VEC3_ADD(fl, bl), 0.5);
+    const vecRight = UT.VEC3_SCALE(UT.VEC3_ADD(fr, br), 0.5);
+
+    const vForward = UT.VEC3_NORMALIZE(UT.VEC3_SUBSTRACT(vecFront, vecBack));
+    const vRight = UT.VEC3_NORMALIZE(UT.VEC3_SUBSTRACT(vecRight, vecLeft));
+
+    let targetUp = UT.VEC3_CROSS(vRight, vForward);
+    
+    if (UT.VEC3_LENGTH(targetUp) < 0.001) {
+       targetUp = [0, 1, 0];
+    } else {
+       targetUp = UT.VEC3_NORMALIZE(targetUp);
+       if (targetUp[1] < 0) targetUp = UT.VEC3_SCALE(targetUp, -1);
     }
     
     // Smoothly lerp the current up vector towards the ground normal
