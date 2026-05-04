@@ -54,7 +54,7 @@ export class Tank {
       Tank.projMesh = createBoxMesh(0.2, 0.2, 1.6, [1.0, 0.8, 0.0]);
     }
     if (!Tank.projGrenadeMesh) {
-      Tank.projGrenadeMesh = createBoxMesh(0.5, 0.5, 0.5, [1.0, 0.4, 0.0]);
+      Tank.projGrenadeMesh = createBoxMesh(0.5, 0.5, 0.5, [0.2, 0.2, 0.2]);
     }
 
     this.physicsBody = gfx3JoltManager.addBox({
