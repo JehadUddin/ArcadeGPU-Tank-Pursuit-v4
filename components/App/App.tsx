@@ -46,6 +46,7 @@ class GameScreen extends Screen {
   cameraDistance = 8;
   isReady: boolean = false;
   cameraLookTarget: vec3 = [0, 0, 0];
+  rightClickFire: boolean = false;
   
   constructor() {
     super();
@@ -61,7 +62,26 @@ class GameScreen extends Screen {
        if (Math.abs(x) < 20 && Math.abs(z) < 20) continue;
        this.enemies.push(new Enemy(x, 45, z));
     }
+
+    if (typeof window !== 'undefined') {
+       window.addEventListener('pointerdown', this.handleGlobalPointerDown);
+       window.addEventListener('pointerup', this.handleGlobalPointerUp);
+    }
   }
+
+  handleGlobalPointerDown = (e: PointerEvent) => {
+    if (e.button === 2) { // Right click
+      if (inputManager.isPointerLockCaptured()) {
+         this.rightClickFire = true;
+      }
+    }
+  };
+
+  handleGlobalPointerUp = (e: PointerEvent) => {
+    if (e.button === 2) {
+      this.rightClickFire = false;
+    }
+  };
 
   async onEnter() {
     gfx3PostRenderer.setParam(PostParam.PIXELATION_ENABLED, 0.0);
@@ -169,6 +189,7 @@ class GameScreen extends Screen {
     const currentFiringInput = inputManager.isActiveAction('FIRE') || (inputManager.isMouseDown() && inputManager.isPointerLockCaptured());
     let isFiring: 'none' | 'normal' | 'grenade' = 'none';
     if (this.virtualFire !== 'none') isFiring = this.virtualFire as any;
+    else if (this.rightClickFire) isFiring = 'grenade';
     else if (currentFiringInput) isFiring = 'normal';
 
     this.level.update(ts);
@@ -449,6 +470,11 @@ const App = () => {
     const [inTank, setInTank] = useState(false);
 
     useEffect(() => {
+        const handleContextMenu = (e: MouseEvent) => {
+            e.preventDefault();
+        };
+        document.addEventListener('contextmenu', handleContextMenu);
+
         const init = async () => {
             // Give a moment for the DOM to settle
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -481,6 +507,7 @@ const App = () => {
         }, 100);
 
         return () => {
+            document.removeEventListener('contextmenu', handleContextMenu);
             clearInterval(interval);
             em.pause();
         };
@@ -492,22 +519,40 @@ const App = () => {
         }
     };
 
+    const activeFires = useRef<Set<string>>(new Set());
+
     const handleFireDown = (e: React.PointerEvent | React.MouseEvent | React.TouchEvent, type: 'normal' | 'grenade') => {
         if (e.cancelable) e.preventDefault();
         e.stopPropagation();
         if ((e as any).nativeEvent && (e as any).nativeEvent.stopImmediatePropagation) {
             (e as any).nativeEvent.stopImmediatePropagation();
         }
-        if (gameScreenRef.current) gameScreenRef.current.virtualFire = type;
+        
+        activeFires.current.add(type);
+        if (gameScreenRef.current) {
+            gameScreenRef.current.virtualFire = type; // The tank will pick the latest or whichever
+        }
+        (e.target as HTMLElement).setPointerCapture((e as any).pointerId);
     };
 
-    const handleFireUp = (e: React.PointerEvent | React.MouseEvent | React.TouchEvent) => {
+    const handleFireUp = (e: React.PointerEvent | React.MouseEvent | React.TouchEvent, type: 'normal' | 'grenade') => {
         if (e.cancelable) e.preventDefault();
         e.stopPropagation();
         if ((e as any).nativeEvent && (e as any).nativeEvent.stopImmediatePropagation) {
             (e as any).nativeEvent.stopImmediatePropagation();
         }
-        if (gameScreenRef.current) gameScreenRef.current.virtualFire = 'none';
+        
+        activeFires.current.delete(type);
+        
+        if (gameScreenRef.current) {
+            if (activeFires.current.has('grenade')) gameScreenRef.current.virtualFire = 'grenade';
+            else if (activeFires.current.has('normal')) gameScreenRef.current.virtualFire = 'normal';
+            else gameScreenRef.current.virtualFire = 'none';
+        }
+        
+        try {
+            (e.target as HTMLElement).releasePointerCapture((e as any).pointerId);
+        } catch (err) {}
     };
 
     const handleInteract = (e: React.PointerEvent | React.MouseEvent | React.TouchEvent) => {
@@ -542,7 +587,7 @@ const App = () => {
                     <p className="text-white/60 text-[11px] font-mono leading-tight">WASD + SHIFT • WALK / RUN</p>
                     <p className="text-white/60 text-[11px] font-mono leading-tight">MOUSE • LOOK AROUND</p>
                     <p className="text-white/60 text-[11px] font-mono leading-tight">SPACE • JUMP / FIRE</p>
-                    <p className="text-white/60 text-[11px] font-mono leading-tight">LEFT CLICK • FIRE</p>
+                    <p className="text-white/60 text-[11px] font-mono leading-tight">L CLICK • FIRE | R CLICK • GRENADE</p>
                     <p className="text-white/60 text-[11px] font-mono leading-tight">E • ENTER / EXIT TANK</p>
                 </div>
             </div>
@@ -588,16 +633,16 @@ const App = () => {
                     <div className="flex gap-4 items-end">
                         <button 
                             onPointerDown={(e) => handleFireDown(e, 'grenade')}
-                            onPointerUp={handleFireUp}
-                            onPointerLeave={handleFireUp}
+                            onPointerUp={(e) => handleFireUp(e, 'grenade')}
+                            onPointerLeave={(e) => handleFireUp(e, 'grenade')}
                             onContextMenu={(e) => e.preventDefault()}
                             className="w-16 h-16 rounded-full bg-orange-500 shadow-[0_4px_10px_rgba(249,115,22,0.4)] border-b-[6px] border-orange-700 active:translate-y-1.5 active:border-b-0 transition-all flex items-center justify-center text-white bg-gradient-to-tr from-orange-700 to-orange-400 z-50 pointer-events-auto select-none touch-none shrink-0 mb-4">
                             <Bomb size={28} />
                         </button>
                         <button 
                             onPointerDown={(e) => handleFireDown(e, 'normal')}
-                            onPointerUp={handleFireUp}
-                            onPointerLeave={handleFireUp}
+                            onPointerUp={(e) => handleFireUp(e, 'normal')}
+                            onPointerLeave={(e) => handleFireUp(e, 'normal')}
                             onContextMenu={(e) => e.preventDefault()}
                             className="w-24 h-24 rounded-[30px] bg-red-600 shadow-[0_8px_20px_rgba(220,38,38,0.5)] border-b-[8px] border-red-800 active:translate-y-2 active:border-b-0 transition-all flex items-center justify-center text-white bg-gradient-to-tr from-red-800 to-red-500 z-50 pointer-events-auto select-none touch-none shrink-0">
                             <Target size={40} className="drop-shadow-lg" />
