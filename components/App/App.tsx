@@ -95,6 +95,7 @@ class GameScreen extends Screen {
     
     // Default start inside tank
     if (this.isPlayerInTank) {
+      gfx3JoltManager.bodyInterface.SetLinearVelocity(this.player.physicsBody.body.GetID(), new Gfx3Jolt.Vec3(0, 0, 0));
       gfx3JoltManager.bodyInterface.SetPosition(this.player.physicsBody.body.GetID(), VEC3_TO_JOLT_RVEC3([0, -100, 0]), Gfx3Jolt.EActivation_DontActivate);
       const tankPos = this.tank.body.getPosition();
       this.cameraLookTarget = [tankPos[0], tankPos[1] + 1.5, tankPos[2]];
@@ -134,13 +135,16 @@ class GameScreen extends Screen {
           
           if (this.isPlayerInTank) {
             // Hide player and move physics body away
+            gfx3JoltManager.bodyInterface.SetLinearVelocity(this.player.physicsBody.body.GetID(), new Gfx3Jolt.Vec3(0, 0, 0));
             gfx3JoltManager.bodyInterface.SetPosition(this.player.physicsBody.body.GetID(), VEC3_TO_JOLT_RVEC3([0, -100, 0]), Gfx3Jolt.EActivation_DontActivate);
           } else {
             // Exit tank: place player next to tank
-            const rot = this.tank.rotation;
-            const exitX = tankPos[0] + Math.cos(rot + Math.PI/2) * 4;
-            const exitZ = tankPos[2] - Math.sin(rot + Math.PI/2) * 4;
-            gfx3JoltManager.bodyInterface.SetPosition(this.player.physicsBody.body.GetID(), VEC3_TO_JOLT_RVEC3([exitX, tankPos[1] + 2, exitZ]), Gfx3Jolt.EActivation_Activate);
+             const rot = this.tank.rotation;
+             const exitX = tankPos[0] + Math.cos(rot + Math.PI/2) * 6;
+             const exitZ = tankPos[2] - Math.sin(rot + Math.PI/2) * 6;
+             gfx3JoltManager.bodyInterface.SetLinearVelocity(this.player.physicsBody.body.GetID(), new Gfx3Jolt.Vec3(0, 0, 0));
+             gfx3JoltManager.bodyInterface.SetPosition(this.player.physicsBody.body.GetID(), VEC3_TO_JOLT_RVEC3([exitX, tankPos[1] + 2, exitZ]), Gfx3Jolt.EActivation_Activate);
+             this.player.position = [exitX, tankPos[1] + 2, exitZ];
           }
        }
     }
