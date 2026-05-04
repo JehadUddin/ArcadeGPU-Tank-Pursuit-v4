@@ -18,6 +18,7 @@ import { eventManager } from '@lib/core/event_manager';
 import { Gfx3Drawable, Gfx3MeshEffect } from '@lib/gfx3/gfx3_drawable';
 import { inputManager } from '@lib/input/input_manager';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Target, Bomb, LogIn, LogOut } from 'lucide-react';
 import { Tank } from './game/Tank';
 import { Player } from './game/Player';
 import { Environment } from './game/Environment';
@@ -165,7 +166,7 @@ class GameScreen extends Screen {
     combinedMoveDir.x = Math.max(-1, Math.min(1, combinedMoveDir.x));
     combinedMoveDir.y = Math.max(-1, Math.min(1, combinedMoveDir.y));
 
-    const currentFiringInput = inputManager.isActiveAction('FIRE') || inputManager.isMouseDown();
+    const currentFiringInput = inputManager.isActiveAction('FIRE') || (inputManager.isMouseDown() && inputManager.isPointerLockCaptured());
     let isFiring: 'none' | 'normal' | 'grenade' = 'none';
     if (this.virtualFire !== 'none') isFiring = this.virtualFire as any;
     else if (currentFiringInput) isFiring = 'normal';
@@ -573,33 +574,33 @@ const App = () => {
                     {nearTank && !inTank && (
                         <button 
                             onPointerDown={handleInteract}
-                            className="w-16 h-16 rounded-full bg-blue-500 shadow-lg border-b-4 border-blue-700 active:translate-y-1 active:border-b-0 transition-all flex items-center justify-center text-white font-bold mb-2">
-                            ENTER
+                            className="w-16 h-16 rounded-full bg-blue-500 shadow-lg border-b-4 border-blue-700 active:translate-y-1 active:border-b-0 transition-all flex items-center justify-center text-white font-bold mb-2 z-50 pointer-events-auto select-none touch-none">
+                            <LogIn size={28} />
                         </button>
                     )}
                     {inTank && (
                         <button 
                             onPointerDown={handleInteract}
-                            className="w-16 h-16 rounded-full bg-yellow-500 shadow-lg border-b-4 border-yellow-700 active:translate-y-1 active:border-b-0 transition-all flex items-center justify-center text-white font-bold mb-2">
-                            EXIT
+                            className="w-16 h-16 rounded-full bg-yellow-500 shadow-lg border-b-4 border-yellow-700 active:translate-y-1 active:border-b-0 transition-all flex items-center justify-center text-black font-bold mb-2 z-50 pointer-events-auto select-none touch-none">
+                            <LogOut size={28} />
                         </button>
                     )}
-                    <div className="flex gap-2">
-                        <button 
-                            onPointerDown={(e) => handleFireDown(e, 'normal')}
-                            onPointerUp={handleFireUp}
-                            onPointerLeave={handleFireUp}
-                            onContextMenu={(e) => e.preventDefault()}
-                            className="w-20 h-20 rounded-full bg-red-500 shadow-lg border-b-4 border-red-700 active:translate-y-1 active:border-b-0 transition-all flex items-center justify-center text-white font-bold text-[10px] leading-tight text-center">
-                            NORMAL<br/>FIRE
-                        </button>
+                    <div className="flex gap-4 items-end">
                         <button 
                             onPointerDown={(e) => handleFireDown(e, 'grenade')}
                             onPointerUp={handleFireUp}
                             onPointerLeave={handleFireUp}
                             onContextMenu={(e) => e.preventDefault()}
-                            className="w-20 h-20 rounded-full bg-orange-500 shadow-lg border-b-4 border-orange-700 active:translate-y-1 active:border-b-0 transition-all flex items-center justify-center text-white font-bold text-[10px] leading-tight text-center">
-                            GRENADE
+                            className="w-16 h-16 rounded-full bg-orange-500 shadow-[0_4px_10px_rgba(249,115,22,0.4)] border-b-[6px] border-orange-700 active:translate-y-1.5 active:border-b-0 transition-all flex items-center justify-center text-white bg-gradient-to-tr from-orange-700 to-orange-400 z-50 pointer-events-auto select-none touch-none shrink-0 mb-4">
+                            <Bomb size={28} />
+                        </button>
+                        <button 
+                            onPointerDown={(e) => handleFireDown(e, 'normal')}
+                            onPointerUp={handleFireUp}
+                            onPointerLeave={handleFireUp}
+                            onContextMenu={(e) => e.preventDefault()}
+                            className="w-24 h-24 rounded-[30px] bg-red-600 shadow-[0_8px_20px_rgba(220,38,38,0.5)] border-b-[8px] border-red-800 active:translate-y-2 active:border-b-0 transition-all flex items-center justify-center text-white bg-gradient-to-tr from-red-800 to-red-500 z-50 pointer-events-auto select-none touch-none shrink-0">
+                            <Target size={40} className="drop-shadow-lg" />
                         </button>
                     </div>
                     <div className="text-white/40 text-xs font-mono uppercase mt-4">Version 0.2.1-Alpha</div>
