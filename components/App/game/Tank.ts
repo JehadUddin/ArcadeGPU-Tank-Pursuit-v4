@@ -108,7 +108,7 @@ export class Tank {
     if (this.recoil < 0) this.recoil = 0;
     
     // Steering Logic
-    this.rotation += moveDir.x * rotSpeed * (ts / 1000); 
+    this.rotation -= moveDir.x * rotSpeed * (ts / 1000); 
     
     const throttle = moveDir.y;
     const targetVelocity = throttle * speed;
@@ -116,7 +116,7 @@ export class Tank {
     this.velocity = UT.LERP(this.velocity, targetVelocity, accelRate);
 
     // Physics Update
-    const forward = [Math.sin(this.rotation), 0, Math.cos(this.rotation)] as vec3;
+    const forward = [-Math.sin(this.rotation), 0, -Math.cos(this.rotation)] as vec3;
     const linVel = UT.VEC3_SCALE(forward, this.velocity);
     
     const curVel = this.physicsBody.body.GetLinearVelocity();
@@ -168,7 +168,7 @@ export class Tank {
     this.trackR.setPosition(pos.GetX() + trackOffsetR[0], pos.GetY() + trackOffsetR[1], pos.GetZ() + trackOffsetR[2]);
     this.trackR.setQuaternion(q);
 
-    const engineOffset = q.rotateVector([0, 0.3, -1.8]);
+    const engineOffset = q.rotateVector([0, 0.3, 1.8]);
     this.engine.setPosition(pos.GetX() + engineOffset[0], pos.GetY() + engineOffset[1], pos.GetZ() + engineOffset[2]);
     this.engine.setQuaternion(q);
 
@@ -197,16 +197,16 @@ export class Tank {
     this.turret.setQuaternion(turretQ);
 
     const visualRecoil = this.recoil > 0 ? this.recoil * 0.45 : 0;
-    const barrelRelativePos = turretQ.rotateVector([0, 0, 1.2 - visualRecoil]);
+    const barrelRelativePos = turretQ.rotateVector([0, 0, -1.2 + visualRecoil]);
     const turretPos = this.turret.getPosition();
     this.barrel.setPosition(turretPos[0] + barrelRelativePos[0], turretPos[1] + barrelRelativePos[1], turretPos[2] + barrelRelativePos[2]);
     this.barrel.setQuaternion(turretQ);
     
-    const hatchOffset = turretQ.rotateVector([0, 0.375 + 0.075, -0.3]);
+    const hatchOffset = turretQ.rotateVector([0, 0.375 + 0.075, 0.3]);
     this.hatch.setPosition(turretPos[0] + hatchOffset[0], turretPos[1] + hatchOffset[1], turretPos[2] + hatchOffset[2]);
     this.hatch.setQuaternion(turretQ);
     
-    const antennaOffset = turretQ.rotateVector([-0.6, 0.375 + 0.75, -0.6]);
+    const antennaOffset = turretQ.rotateVector([-0.6, 0.375 + 0.75, 0.6]);
     this.antenna.setPosition(turretPos[0] + antennaOffset[0], turretPos[1] + antennaOffset[1], turretPos[2] + antennaOffset[2]);
     this.antenna.setQuaternion(turretQ);
     
@@ -229,7 +229,7 @@ export class Tank {
    */
   shoot(type: 'normal' | 'grenade' = 'normal') {
     const q = this.barrel.getQuaternion();
-    const direction = q.rotateVector([0, 0, 1]); 
+    const direction = q.rotateVector([0, 0, -1]); 
     const bPos = this.barrel.getPosition();
     const startPos = [
       bPos[0] + direction[0] * 3.0,

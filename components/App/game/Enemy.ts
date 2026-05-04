@@ -106,7 +106,7 @@ export class Enemy {
     const dz = targetPos[2] - myPos[2];
     const dist = Math.sqrt(dx*dx + dz*dz);
     
-    const targetAngle = Math.atan2(dx, dz);
+    const targetAngle = Math.atan2(-dx, -dz);
     
     // Smooth rotation towards target
     const PI2 = Math.PI * 2;
@@ -126,7 +126,7 @@ export class Enemy {
         throttle = -0.5; // Back up a bit
     }
 
-    const forward = [Math.sin(this.rotation), 0, Math.cos(this.rotation)] as vec3;
+    const forward = [-Math.sin(this.rotation), 0, -Math.cos(this.rotation)] as vec3;
     const linVel = UT.VEC3_SCALE(forward, throttle * speed);
     
     const curVel = this.physicsBody.body.GetLinearVelocity();
@@ -178,12 +178,12 @@ export class Enemy {
   }
   
   shoot(q: Quaternion): { muzzlePos: vec3, dir: vec3 } {
-    const direction = q.rotateVector([0, 0, 1]); 
+    const direction = q.rotateVector([0, 0, -1]); 
     const currentRot = this.physicsBody.body.GetRotation();
     const bodyQ = new Quaternion(currentRot.GetW(), currentRot.GetX(), currentRot.GetY(), currentRot.GetZ());
     
     const visualRecoil = this.recoil > 0 ? this.recoil * 0.3 : 0;
-    const barrelRelativePos = bodyQ.rotateVector([0, 0, 0.8 - visualRecoil]);
+    const barrelRelativePos = bodyQ.rotateVector([0, 0, -0.8 + visualRecoil]);
     const pos = this.physicsBody.body.GetPosition();
     const bPos = [pos.GetX() + barrelRelativePos[0], pos.GetY() + 0.45 + barrelRelativePos[1], pos.GetZ() + barrelRelativePos[2]];
 
@@ -253,7 +253,7 @@ export class Enemy {
     const matTrackR = UT.MAT4_TRANSFORM([origin[0] + trackOffsetR[0], origin[1] + trackOffsetR[1], origin[2] + trackOffsetR[2]], ZERO, scale, q);
     gfx3MeshRenderer.drawMesh(Enemy.trackRMesh, matTrackR);
 
-    const engineOffset = q.rotateVector([0, 0.2, -1.2]);
+    const engineOffset = q.rotateVector([0, 0.2, 1.2]);
     const matEngine = UT.MAT4_TRANSFORM([origin[0] + engineOffset[0], origin[1] + engineOffset[1], origin[2] + engineOffset[2]], ZERO, scale, q);
     gfx3MeshRenderer.drawMesh(Enemy.engineMesh, matEngine);
 
@@ -262,7 +262,7 @@ export class Enemy {
     gfx3MeshRenderer.drawMesh(Enemy.turretMesh, matTurret);
 
     const visualRecoil = this.recoil > 0 ? this.recoil * 0.3 : 0;
-    const barrelRelativePos = q.rotateVector([0, 0, 0.8 - visualRecoil]);
+    const barrelRelativePos = q.rotateVector([0, 0, -0.8 + visualRecoil]);
     const matBarrel = UT.MAT4_TRANSFORM([origin[0] + turretOffset[0] + barrelRelativePos[0], origin[1] + turretOffset[1] + barrelRelativePos[1], origin[2] + turretOffset[2] + barrelRelativePos[2]], ZERO, scale, q);
     gfx3MeshRenderer.drawMesh(Enemy.barrelMesh, matBarrel);
   }

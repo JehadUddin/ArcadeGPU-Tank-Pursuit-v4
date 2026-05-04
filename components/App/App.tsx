@@ -200,7 +200,7 @@ class GameScreen extends Screen {
                 this.explosions.push(new Explosion(pPos.GetX(), pPos.GetY(), pPos.GetZ()));
                 
                 // Add a consistent visual hop and push
-                const pushDir = p.rot.rotateVector([0, 0, 1]);
+                const pushDir = p.rot.rotateVector([0, 0, -1]);
                 const pushMagnitude = 600;
                 const pushForce = new Gfx3Jolt.Vec3(pushDir[0] * pushMagnitude, 500, pushDir[2] * pushMagnitude);
                 gfx3JoltManager.bodyInterface.AddImpulse(enemy.physicsBody.body.GetID(), pushForce);
@@ -231,7 +231,7 @@ class GameScreen extends Screen {
                 this.explosions.push(new Explosion(pPos.GetX(), pPos.GetY(), pPos.GetZ()));
                 
                 // Add a push to the player/tank
-                const pushDir = p.rot.rotateVector([0, 0, 1]);
+                const pushDir = p.rot.rotateVector([0, 0, -1]);
                 if (this.isPlayerInTank) {
                     const pushForce = new Gfx3Jolt.Vec3(pushDir[0] * 800, 200, pushDir[2] * 800);
                     gfx3JoltManager.bodyInterface.AddImpulse(this.tank.physicsBody.body.GetID(), pushForce);
@@ -247,11 +247,11 @@ class GameScreen extends Screen {
 
     // Update based on possessed entity
     if (this.isPlayerInTank) {
-      const didShoot = this.tank.update(ts, combinedMoveDir, isFiring, this.cameraYaw + Math.PI);
+      const didShoot = this.tank.update(ts, combinedMoveDir, isFiring, this.cameraYaw);
       if (didShoot) {
          const bPos = this.tank.barrel.getPosition();
          const bRot = this.tank.barrel.getQuaternion();
-         const dir = bRot.rotateVector([0, 0, 1]);
+         const dir = bRot.rotateVector([0, 0, -1]);
          
          const muzzlePos = [
              bPos[0] + dir[0] * 3.0,

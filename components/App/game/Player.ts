@@ -92,7 +92,7 @@ export class Player {
     
     const isMoving = (moveDir.x !== 0 || moveDir.y !== 0);
     if (isMoving) {
-      const targetRotation = Math.atan2(moveDir.x, moveDir.y);
+      const targetRotation = Math.atan2(-moveDir.x, -moveDir.y);
       let diff = targetRotation - this.rotation;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
@@ -133,15 +133,15 @@ export class Player {
     this.head.setPosition(px + headOffset[0], py + headOffset[1], pz + headOffset[2]);
     this.head.setQuaternion(quat);
     
-    const eyeOffsetL = quat.rotateVector([-0.15, 1.0 + bobbing, 0.26]);
+    const eyeOffsetL = quat.rotateVector([-0.15, 1.0 + bobbing, -0.26]);
     this.eyeL.setPosition(px + eyeOffsetL[0], py + eyeOffsetL[1], pz + eyeOffsetL[2]);
     this.eyeL.setQuaternion(quat);
 
-    const eyeOffsetR = quat.rotateVector([0.15, 1.0 + bobbing, 0.26]);
+    const eyeOffsetR = quat.rotateVector([0.15, 1.0 + bobbing, -0.26]);
     this.eyeR.setPosition(px + eyeOffsetR[0], py + eyeOffsetR[1], pz + eyeOffsetR[2]);
     this.eyeR.setQuaternion(quat);
 
-    const packOffset = quat.rotateVector([0, 0.3 + bobbing, -0.35]);
+    const packOffset = quat.rotateVector([0, 0.3 + bobbing, 0.35]);
     this.backpack.setPosition(px + packOffset[0], py + packOffset[1], pz + packOffset[2]);
     this.backpack.setQuaternion(quat);
     
