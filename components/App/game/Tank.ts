@@ -248,7 +248,7 @@ export class Tank {
     const localYawQ = Quaternion.createFromEuler(localYaw, 0, 0, 'YXZ');
     const turretQ = Quaternion.multiply(meshQ, localYawQ);
     
-    const turretOffset = q.rotateVector([0, 0.675, 0]);
+    const turretOffset = meshQ.rotateVector([0, 0.675, 0]);
     this.turret.setPosition(pos.GetX() + turretOffset[0], pos.GetY() + turretOffset[1], pos.GetZ() + turretOffset[2]);
     this.turret.setQuaternion(turretQ);
 
