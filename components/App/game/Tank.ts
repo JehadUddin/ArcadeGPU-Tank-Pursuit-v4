@@ -32,6 +32,7 @@ export class Tank {
   projectiles: { body: any, life: number, rot: Quaternion, type: 'normal' | 'grenade' }[] = [];
 
   static projMesh: Gfx3Mesh | null = null;
+  static projGrenadeMesh: Gfx3Mesh | null = null;
 
   constructor() {
     const chassisColor: [number, number, number] = [0.4, 0.5, 0.3];
@@ -51,6 +52,9 @@ export class Tank {
 
     if (!Tank.projMesh) {
       Tank.projMesh = createBoxMesh(0.2, 0.2, 1.6, [1.0, 0.8, 0.0]);
+    }
+    if (!Tank.projGrenadeMesh) {
+      Tank.projGrenadeMesh = createBoxMesh(0.5, 0.5, 0.5, [1.0, 0.4, 0.0]);
     }
 
     this.physicsBody = gfx3JoltManager.addBox({
@@ -88,16 +92,16 @@ export class Tank {
   /**
    * Updates physics and syncs mesh transforms.
    */
-  update(ts: number, moveDir: { x: number, y: number }, fireType: 'none' | 'normal' | 'grenade' = 'none', cameraYaw: number = 0): boolean {
+  update(ts: number, moveDir: { x: number, y: number }, fireType: 'none' | 'normal' | 'grenade' = 'none', cameraYaw: number = 0): false | 'normal' | 'grenade' {
     const speed = 15;
     const rotSpeed = 3.5;
 
-    let didShoot = false;
+    let didShoot: false | 'normal' | 'grenade' = false;
     if (fireType !== 'none') {
         if (this.recoil <= 0) {
             this.shoot(fireType);
             this.recoil = 1.0;
-            didShoot = true;
+            didShoot = fireType;
         }
         this.wasFiringInternal = true;
     } else {
@@ -286,8 +290,8 @@ export class Tank {
     let upwardVelocity = 2; // slight arc for normal fire
     
     if (type === 'grenade') {
-        forwardSpeed = 45;
-        upwardVelocity = 15;
+        forwardSpeed = 25;
+        upwardVelocity = 35;
     }
     
     const pVel = new Gfx3Jolt.Vec3(
@@ -296,6 +300,11 @@ export class Tank {
       direction[2] * forwardSpeed
     );
     gfx3JoltManager.bodyInterface.SetLinearVelocity(pBody.body.GetID(), pVel);
+
+    if (type === 'grenade') {
+        const angVel = new Gfx3Jolt.Vec3(Math.random() * 10, Math.random() * 10, Math.random() * 10);
+        gfx3JoltManager.bodyInterface.SetAngularVelocity(pBody.body.GetID(), angVel);
+    }
     
     // Tank no longer receives hard physics recoil from shooting to avoid camera jump
     
@@ -315,13 +324,17 @@ export class Tank {
     this.hatch.draw();
     this.antenna.draw();
     
-    if (Tank.projMesh) {
+    if (Tank.projMesh && Tank.projGrenadeMesh) {
       for (const p of this.projectiles) {
-         const scale: [number, number, number] = p.type === 'grenade' ? [2, 2, 2] : [1, 1, 1];
+         const meshToDraw = p.type === 'grenade' ? Tank.projGrenadeMesh : Tank.projMesh;
+         const scale: [number, number, number] = p.type === 'grenade' ? [1.5, 1.5, 1.5] : [1, 1, 1];
          const pPos = p.body.body.GetPosition();
+         const pRot = p.body.body.GetRotation();
+         const q = new Quaternion(pRot.GetW(), pRot.GetX(), pRot.GetY(), pRot.GetZ());
+         
          const ZERO: [number, number, number] = [0,0,0];
-         const matProj = UT.MAT4_TRANSFORM([pPos.GetX(), pPos.GetY(), pPos.GetZ()], ZERO, scale, p.rot);
-         gfx3MeshRenderer.drawMesh(Tank.projMesh, matProj);
+         const matProj = UT.MAT4_TRANSFORM([pPos.GetX(), pPos.GetY(), pPos.GetZ()], ZERO, scale, q);
+         gfx3MeshRenderer.drawMesh(meshToDraw, matProj);
       }
     }
   }

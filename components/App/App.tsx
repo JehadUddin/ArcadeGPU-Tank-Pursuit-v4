@@ -218,6 +218,26 @@ class GameScreen extends Screen {
             p.life = 0;
             if (p.type === 'grenade') {
                 this.explosions.push(new Explosion(pPos.GetX(), pPos.GetY(), pPos.GetZ(), [0.8, 0.4, 0.1], undefined, 3.0));
+                
+                // Area of effect damage
+                for (const enemy of this.enemies) {
+                    if (enemy.hp <= 0) continue;
+                    const ePos = enemy.physicsBody.body.GetPosition();
+                    const dx = ePos.GetX() - pPos.GetX();
+                    const dz = ePos.GetZ() - pPos.GetZ();
+                    const aoeDist = Math.sqrt(dx*dx + dz*dz);
+                    if (aoeDist < 10) {
+                        enemy.hp -= 100;
+                        const pushDir = UT.VEC3_NORMALIZE([dx, 1.0, dz]);
+                        const pushMagnitude = 1500;
+                        const pushForce = new Gfx3Jolt.Vec3(pushDir[0] * pushMagnitude, pushDir[1] * pushMagnitude, pushDir[2] * pushMagnitude);
+                        gfx3JoltManager.bodyInterface.AddImpulse(enemy.physicsBody.body.GetID(), pushForce);
+                        if (enemy.hp <= 0) {
+                            this.explosions.push(new Explosion(ePos.GetX(), ePos.GetY(), ePos.GetZ(), [0.8, 0.2, 0.2], undefined, 2.0));
+                            gfx3JoltManager.bodyInterface.SetPosition(enemy.physicsBody.body.GetID(), VEC3_TO_JOLT_RVEC3([0, -100, 0]), Gfx3Jolt.EActivation_DontActivate);
+                        }
+                    }
+                }
             } else {
                 this.explosions.push(new Explosion(pPos.GetX(), pPos.GetY(), pPos.GetZ()));
             }
@@ -304,13 +324,15 @@ class GameScreen extends Screen {
              bPos[2] + dir[2] * 3.0,
          ] as vec3;
          
-         this.explosions.push(new Explosion(muzzlePos[0], muzzlePos[1], muzzlePos[2], [1.0, 0.8, 0.2], dir));
+         const muzzleColor: [number, number, number] = didShoot === 'grenade' ? [0.8, 0.4, 0.1] : [1.0, 0.8, 0.2];
+         const scaleMultiplier = didShoot === 'grenade' ? 2.5 : 1.0;
+         this.explosions.push(new Explosion(muzzlePos[0], muzzlePos[1], muzzlePos[2], muzzleColor, dir, scaleMultiplier));
       }
       
       // Stop player
       this.player.update(ts, { x: 0, y: 0 });
     } else {
-      this.tank.update(ts, { x: 0, y: 0 }, false, this.tank.rotation);
+      this.tank.update(ts, { x: 0, y: 0 }, 'none', this.tank.rotation);
       
       // Calculate local movement direction relative to camera yaw
       // Forward is aligning with the camera's look direction (ignoring Y).
