@@ -170,7 +170,10 @@ class GameScreen extends Screen {
 
     const targetPos = this.isPlayerInTank ? this.tank.body.getPosition() : this.player.position;
     for (const enemy of this.enemies) {
-       enemy.update(ts, targetPos);
+       const res = enemy.update(ts, targetPos);
+       if (res.didShoot && res.muzzlePos && res.dir) {
+           this.explosions.push(new Explosion(res.muzzlePos[0], res.muzzlePos[1], res.muzzlePos[2], [1.0, 0.5, 0.1], res.dir));
+       }
     }
     
     // Update explosions
@@ -191,8 +194,7 @@ class GameScreen extends Screen {
             const dy = pPos.GetY() - ePos.GetY();
             const dz = pPos.GetZ() - ePos.GetZ();
             const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-            // Wait for projectile to travel a bit before hitting (avoids instant self-hit or target-click bugs)
-            if (dist < 2.5 && p.life < 2.95) {
+            if (dist < 2.5) {
                 enemy.hp -= 34; // 3 hits to kill (100 hp)
                 p.life = 0; 
                 this.explosions.push(new Explosion(pPos.GetX(), pPos.GetY(), pPos.GetZ()));
@@ -224,7 +226,7 @@ class GameScreen extends Screen {
             const dz = pPos.GetZ() - pTarget[2];
             const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
             
-            if (dist < (this.isPlayerInTank ? 2.5 : 1.0) && p.life < 2.95) {
+            if (dist < (this.isPlayerInTank ? 2.5 : 1.0)) {
                 p.life = 0;
                 this.explosions.push(new Explosion(pPos.GetX(), pPos.GetY(), pPos.GetZ()));
                 

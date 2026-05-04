@@ -79,8 +79,19 @@ export class Enemy {
   }
 
 
-  update(ts: number, targetPos: any) {
-    if (this.hp <= 0) return;
+  update(ts: number, targetPos: any): { didShoot: boolean, muzzlePos?: vec3, dir?: vec3 } {
+    // Update projectiles ALWAYS, even if dead
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+       const p = this.projectiles[i];
+       p.life -= (ts / 1000);
+       
+       if (p.life <= 0) {
+          gfx3JoltManager.remove(p.body.bodyId);
+          this.projectiles.splice(i, 1);
+       }
+    }
+
+    if (this.hp <= 0) return { didShoot: false };
 
     this.recoil -= (ts / 1000) * 5; 
     if (this.recoil < 0) this.recoil = 0;
@@ -149,26 +160,24 @@ export class Enemy {
     const joltQuat = new Gfx3Jolt.Quat(quat.x, quat.y, quat.z, quat.w);
     gfx3JoltManager.bodyInterface.SetRotation(this.physicsBody.body.GetID(), joltQuat, Gfx3Jolt.EActivation_Activate);
     
+    let didShoot = false;
+    let muzzlePos: vec3 | undefined = undefined;
+    let dir: vec3 | undefined = undefined;
+
     // Shoot Logic
     if (dist < 40 && Math.abs(angleDiff) < 0.2 && this.shootCooldown <= 0) {
-        this.shoot(quat);
+        const shootData = this.shoot(quat);
+        muzzlePos = shootData.muzzlePos;
+        dir = shootData.dir;
         this.shootCooldown = 2.0; // 2 sec cooldown
         this.recoil = 1.0;
+        didShoot = true;
     }
     
-    // Update projectiles
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-       const p = this.projectiles[i];
-       p.life -= (ts / 1000);
-       
-       if (p.life <= 0) {
-          gfx3JoltManager.remove(p.body.bodyId);
-          this.projectiles.splice(i, 1);
-       }
-    }
+    return { didShoot, muzzlePos, dir };
   }
   
-  shoot(q: Quaternion) {
+  shoot(q: Quaternion): { muzzlePos: vec3, dir: vec3 } {
     const direction = q.rotateVector([0, 0, 1]); 
     const currentRot = this.physicsBody.body.GetRotation();
     const bodyQ = new Quaternion(currentRot.GetW(), currentRot.GetX(), currentRot.GetY(), currentRot.GetZ());
@@ -206,18 +215,32 @@ export class Enemy {
     gfx3JoltManager.bodyInterface.AddImpulse(this.physicsBody.body.GetID(), recoilForce);
     
     this.projectiles.push({ body: pBody, life: 3.0, rot: q });
+    
+    return {
+       muzzlePos: [startPos[0], startPos[1], startPos[2]] as vec3,
+       dir: [direction[0], direction[1], direction[2]] as vec3
+    };
   }
 
   draw() {
+    const scale: vec3 = [1, 1, 1];
+    const ZERO: vec3 = [0,0,0];
+
+    // Always draw projectiles
+    for (const p of this.projectiles) {
+       const pPos = p.body.body.GetPosition();
+       const pRot = p.body.body.GetRotation();
+       const pQ = new Quaternion(pRot.GetW(), pRot.GetX(), pRot.GetY(), pRot.GetZ());
+       const matProj = UT.MAT4_TRANSFORM([pPos.GetX(), pPos.GetY(), pPos.GetZ()], ZERO, scale, pQ);
+       gfx3MeshRenderer.drawMesh(Enemy.projMesh, matProj);
+    }
+    
     if (this.hp <= 0) return;
 
     const pos = this.physicsBody.body.GetPosition();
     const currentRot = this.physicsBody.body.GetRotation();
     const q = new Quaternion(currentRot.GetW(), currentRot.GetX(), currentRot.GetY(), currentRot.GetZ());
     const origin: vec3 = [pos.GetX(), pos.GetY(), pos.GetZ()];
-    const scale: vec3 = [1, 1, 1];
-
-    const ZERO: vec3 = [0,0,0];
 
     const matBody = UT.MAT4_TRANSFORM(origin, ZERO, scale, q);
     gfx3MeshRenderer.drawMesh(Enemy.bodyMesh, matBody);
@@ -242,13 +265,5 @@ export class Enemy {
     const barrelRelativePos = q.rotateVector([0, 0, 0.8 - visualRecoil]);
     const matBarrel = UT.MAT4_TRANSFORM([origin[0] + turretOffset[0] + barrelRelativePos[0], origin[1] + turretOffset[1] + barrelRelativePos[1], origin[2] + turretOffset[2] + barrelRelativePos[2]], ZERO, scale, q);
     gfx3MeshRenderer.drawMesh(Enemy.barrelMesh, matBarrel);
-    
-    for (const p of this.projectiles) {
-       const pPos = p.body.body.GetPosition();
-       const pRot = p.body.body.GetRotation();
-       const pQ = new Quaternion(pRot.GetW(), pRot.GetX(), pRot.GetY(), pRot.GetZ());
-       const matProj = UT.MAT4_TRANSFORM([pPos.GetX(), pPos.GetY(), pPos.GetZ()], ZERO, scale, pQ);
-       gfx3MeshRenderer.drawMesh(Enemy.projMesh, matProj);
-    }
   }
 }
