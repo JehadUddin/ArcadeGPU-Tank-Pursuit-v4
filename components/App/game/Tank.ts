@@ -58,7 +58,12 @@ export class Tank {
       x: 0, y: 45, z: 0,
       motionType: Gfx3Jolt.EMotionType_Dynamic,
       layer: JOLT_LAYER_MOVING,
-      settings: { mAngularDamping: 1.0, mLinearDamping: 0.5, mMassPropertiesOverride: 100.0 }
+      settings: { 
+        mAngularDamping: 1.0, 
+        mLinearDamping: 0.5, 
+        mMassPropertiesOverride: 100.0,
+        mAllowedDOFs: 23 // T_X, T_Y, T_Z, R_Y
+      }
     });
   }
 
@@ -142,9 +147,11 @@ export class Tank {
     const getHitPoint = (dx: number, dz: number): vec3 => {
       const wx = cx + rx * dx + fx * dz;
       const wz = cz + rz * dx + fz * dz;
-      const ray = gfx3JoltManager.createRay(wx, cy, wz, wx, cy - 3.0, wz);
+      const startY = cy + 5.0;
+      const endY = cy - 5.0;
+      const ray = gfx3JoltManager.createRay(wx, startY, wz, wx, endY, wz);
       if (ray.fraction < 1.0) {
-        return [wx, cy - ray.fraction * 3.0, wz];
+        return [wx, startY - ray.fraction * 10.0, wz];
       }
       return [wx, cy - 1.5, wz]; 
     };
@@ -153,6 +160,15 @@ export class Tank {
     const fr = getHitPoint(hw, hd);
     const bl = getHitPoint(-hw, -hd);
     const br = getHitPoint(hw, -hd);
+
+    // Maintain height above ground
+    const groundHeight = (fl[1] + fr[1] + bl[1] + br[1]) / 4;
+    const hoverHeight = 0.45;
+    const currentY = pos.GetY();
+    const targetY = groundHeight + hoverHeight;
+    const newY = UT.LERP(currentY, targetY, 0.2);
+    pos.SetY(newY);
+    gfx3JoltManager.bodyInterface.SetPosition(this.physicsBody.body.GetID(), pos, Gfx3Jolt.EActivation_Activate);
 
     const vecFront = UT.VEC3_SCALE(UT.VEC3_ADD(fl, fr), 0.5);
     const vecBack = UT.VEC3_SCALE(UT.VEC3_ADD(bl, br), 0.5);
@@ -187,28 +203,30 @@ export class Tank {
         quat = Quaternion.multiply(alignQ, quat); // Multiply align * yaw
     }
 
-    const joltQuat = new Gfx3Jolt.Quat(quat.x, quat.y, quat.z, quat.w);
-    gfx3JoltManager.bodyInterface.SetRotation(this.physicsBody.body.GetID(), joltQuat, Gfx3Jolt.EActivation_Activate);
-
+    const joltQuat = new Gfx3Jolt.Quat(quat.x, quat.y, quat.z, quat.w); // Visual rotation only
+    
+    const phyQuat = Quaternion.createFromEuler(this.rotation, 0, 0, 'YXZ');
+    const joltPhyQuat = new Gfx3Jolt.Quat(phyQuat.x, phyQuat.y, phyQuat.z, phyQuat.w);
+    gfx3JoltManager.bodyInterface.SetRotation(this.physicsBody.body.GetID(), joltPhyQuat, Gfx3Jolt.EActivation_Activate);
+    
     // Sync Mesh Positions
-    const rot = this.physicsBody.body.GetRotation();
-    const q = new Quaternion(rot.GetW(), rot.GetX(), rot.GetY(), rot.GetZ());
+    const meshQ = new Quaternion(joltQuat.GetW(), joltQuat.GetX(), joltQuat.GetY(), joltQuat.GetZ());
 
     this.body.setPosition(pos.GetX(), pos.GetY(), pos.GetZ());
-    this.body.setQuaternion(q);
+    this.body.setQuaternion(meshQ);
 
     // Component Offsets
-    const trackOffsetL = q.rotateVector([-1.425, -0.15, 0]);
+    const trackOffsetL = meshQ.rotateVector([-1.425, -0.15, 0]);
     this.trackL.setPosition(pos.GetX() + trackOffsetL[0], pos.GetY() + trackOffsetL[1], pos.GetZ() + trackOffsetL[2]);
-    this.trackL.setQuaternion(q);
+    this.trackL.setQuaternion(meshQ);
 
-    const trackOffsetR = q.rotateVector([1.425, -0.15, 0]);
+    const trackOffsetR = meshQ.rotateVector([1.425, -0.15, 0]);
     this.trackR.setPosition(pos.GetX() + trackOffsetR[0], pos.GetY() + trackOffsetR[1], pos.GetZ() + trackOffsetR[2]);
-    this.trackR.setQuaternion(q);
+    this.trackR.setQuaternion(meshQ);
 
-    const engineOffset = q.rotateVector([0, 0.3, 1.8]);
+    const engineOffset = meshQ.rotateVector([0, 0.3, 1.8]);
     this.engine.setPosition(pos.GetX() + engineOffset[0], pos.GetY() + engineOffset[1], pos.GetZ() + engineOffset[2]);
-    this.engine.setQuaternion(q);
+    this.engine.setQuaternion(meshQ);
 
     // Turret follows body tilt but has independent yaw
     // We want the turret to smoothly turn to face cameraYaw.
@@ -228,7 +246,7 @@ export class Tank {
     
     const localYaw = (this.turretYaw - this.rotation);
     const localYawQ = Quaternion.createFromEuler(localYaw, 0, 0, 'YXZ');
-    const turretQ = Quaternion.multiply(q, localYawQ);
+    const turretQ = Quaternion.multiply(meshQ, localYawQ);
     
     const turretOffset = q.rotateVector([0, 0.675, 0]);
     this.turret.setPosition(pos.GetX() + turretOffset[0], pos.GetY() + turretOffset[1], pos.GetZ() + turretOffset[2]);
