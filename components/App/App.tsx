@@ -254,9 +254,9 @@ class GameScreen extends Screen {
          const dir = bRot.rotateVector([0, 0, 1]);
          
          const muzzlePos = [
-             bPos[0] + dir[0] * 1.5,
-             bPos[1] + dir[1] * 1.5,
-             bPos[2] + dir[2] * 1.5,
+             bPos[0] + dir[0] * 3.0,
+             bPos[1] + dir[1] * 3.0,
+             bPos[2] + dir[2] * 3.0,
          ] as vec3;
          
          this.explosions.push(new Explosion(muzzlePos[0], muzzlePos[1], muzzlePos[2], [1.0, 0.8, 0.2], dir));

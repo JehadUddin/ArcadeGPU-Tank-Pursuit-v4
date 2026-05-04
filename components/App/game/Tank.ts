@@ -232,9 +232,9 @@ export class Tank {
     const direction = q.rotateVector([0, 0, 1]); 
     const bPos = this.barrel.getPosition();
     const startPos = [
-      bPos[0] + direction[0] * 1.5,
-      bPos[1] + direction[1] * 1.5,
-      bPos[2] + direction[2] * 1.5,
+      bPos[0] + direction[0] * 3.0,
+      bPos[1] + direction[1] * 3.0,
+      bPos[2] + direction[2] * 3.0,
     ];
     
     const pBody = gfx3JoltManager.addBox({

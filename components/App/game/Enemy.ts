@@ -188,9 +188,9 @@ export class Enemy {
     const bPos = [pos.GetX() + barrelRelativePos[0], pos.GetY() + 0.45 + barrelRelativePos[1], pos.GetZ() + barrelRelativePos[2]];
 
     const startPos = [
-      bPos[0] + direction[0] * 1.0,
-      bPos[1] + direction[1] * 1.0,
-      bPos[2] + direction[2] * 1.0,
+      bPos[0] + direction[0] * 2.5,
+      bPos[1] + direction[1] * 2.5,
+      bPos[2] + direction[2] * 2.5,
     ];
     
     const pBody = gfx3JoltManager.addBox({
