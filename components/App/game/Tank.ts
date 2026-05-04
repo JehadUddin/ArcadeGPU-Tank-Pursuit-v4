@@ -58,7 +58,7 @@ export class Tank {
       x: 0, y: 45, z: 0,
       motionType: Gfx3Jolt.EMotionType_Dynamic,
       layer: JOLT_LAYER_MOVING,
-      settings: { mAngularDamping: 1.0, mLinearDamping: 0.5, mMassPropertiesOverride: 100.0 }
+      settings: { mAngularDamping: 1.0, mLinearDamping: 0.5, mMassPropertiesOverride: 100.0, mAllowedDOFs: 7 }
     });
   }
 
@@ -188,11 +188,10 @@ export class Tank {
     }
 
     const joltQuat = new Gfx3Jolt.Quat(quat.x, quat.y, quat.z, quat.w);
-    gfx3JoltManager.bodyInterface.SetRotation(this.physicsBody.body.GetID(), joltQuat, Gfx3Jolt.EActivation_Activate);
+    // Physics body rotation is locked via mAllowedDOFs = 7. Visuals rotate using `quat`.
 
     // Sync Mesh Positions
-    const rot = this.physicsBody.body.GetRotation();
-    const q = new Quaternion(rot.GetW(), rot.GetX(), rot.GetY(), rot.GetZ());
+    const q = quat;
 
     this.body.setPosition(pos.GetX(), pos.GetY(), pos.GetZ());
     this.body.setQuaternion(q);
