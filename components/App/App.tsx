@@ -213,6 +213,19 @@ class GameScreen extends Screen {
         if (p.life <= 0) continue;
         const pPos = p.body.body.GetPosition();
         
+        let hitGround = false;
+        if (pPos.GetY() < 0.2) {
+            p.life = 0;
+            if (p.type === 'grenade') {
+                this.explosions.push(new Explosion(pPos.GetX(), pPos.GetY(), pPos.GetZ(), [0.8, 0.4, 0.1], undefined, 3.0));
+            } else {
+                this.explosions.push(new Explosion(pPos.GetX(), pPos.GetY(), pPos.GetZ()));
+            }
+            hitGround = true;
+        }
+
+        if (hitGround) continue;
+
         for (const enemy of this.enemies) {
             if (enemy.hp <= 0) continue;
             const ePos = enemy.physicsBody.body.GetPosition();
@@ -221,18 +234,24 @@ class GameScreen extends Screen {
             const dz = pPos.GetZ() - ePos.GetZ();
             const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
             if (dist < 2.5) {
-                enemy.hp -= 34; // 3 hits to kill (100 hp)
-                p.life = 0; 
-                this.explosions.push(new Explosion(pPos.GetX(), pPos.GetY(), pPos.GetZ()));
+                if (p.type === 'grenade') {
+                    enemy.hp -= 100; // instant kill
+                    p.life = 0; 
+                    this.explosions.push(new Explosion(pPos.GetX(), pPos.GetY(), pPos.GetZ(), [0.8, 0.4, 0.1], undefined, 3.0));
+                } else {
+                    enemy.hp -= 34; // 3 hits to kill (100 hp)
+                    p.life = 0; 
+                    this.explosions.push(new Explosion(pPos.GetX(), pPos.GetY(), pPos.GetZ()));
+                }
                 
                 // Add a consistent visual hop and push
                 const pushDir = p.rot.rotateVector([0, 0, -1]);
-                const pushMagnitude = 600;
-                const pushForce = new Gfx3Jolt.Vec3(pushDir[0] * pushMagnitude, 500, pushDir[2] * pushMagnitude);
+                const pushMagnitude = p.type === 'grenade' ? 1200 : 600;
+                const pushForce = new Gfx3Jolt.Vec3(pushDir[0] * pushMagnitude, p.type === 'grenade' ? 1000 : 500, pushDir[2] * pushMagnitude);
                 gfx3JoltManager.bodyInterface.AddImpulse(enemy.physicsBody.body.GetID(), pushForce);
 
                 if (enemy.hp <= 0) {
-                    this.explosions.push(new Explosion(ePos.GetX(), ePos.GetY(), ePos.GetZ(), [0.8, 0.2, 0.2]));
+                    this.explosions.push(new Explosion(ePos.GetX(), ePos.GetY(), ePos.GetZ(), [0.8, 0.2, 0.2], undefined, p.type === 'grenade' ? 2.5 : 1.5));
                     gfx3JoltManager.bodyInterface.SetPosition(enemy.physicsBody.body.GetID(), VEC3_TO_JOLT_RVEC3([0, -100, 0]), Gfx3Jolt.EActivation_DontActivate);
                 }
                 break;

@@ -29,7 +29,7 @@ export class Tank {
   currentUp: vec3 = [0, 1, 0];
   
   // Bullets instances
-  projectiles: { body: any, life: number, rot: Quaternion }[] = [];
+  projectiles: { body: any, life: number, rot: Quaternion, type: 'normal' | 'grenade' }[] = [];
 
   static projMesh: Gfx3Mesh | null = null;
 
@@ -300,7 +300,7 @@ export class Tank {
     
     // Tank no longer receives hard physics recoil from shooting to avoid camera jump
     
-    this.projectiles.push({ body: pBody, life: 3.0, rot: q });
+    this.projectiles.push({ body: pBody, life: 3.0, rot: q, type });
   }
 
   /**
@@ -317,8 +317,8 @@ export class Tank {
     this.antenna.draw();
     
     if (Tank.projMesh) {
-      const scale: [number, number, number] = [1, 1, 1];
       for (const p of this.projectiles) {
+         const scale: [number, number, number] = p.type === 'grenade' ? [2, 2, 2] : [1, 1, 1];
          const pPos = p.body.body.GetPosition();
          const ZERO: [number, number, number] = [0,0,0];
          const matProj = UT.MAT4_TRANSFORM([pPos.GetX(), pPos.GetY(), pPos.GetZ()], ZERO, scale, p.rot);

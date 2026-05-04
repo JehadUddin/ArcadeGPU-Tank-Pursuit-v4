@@ -5,12 +5,12 @@ import { UT } from '@lib/core/utils';
 import { createBoxMesh } from './GameUtils';
 
 export class Explosion {
-    particles: { pos: vec3, vel: vec3, life: number, maxLife: number, colorIdx: number }[] = [];
+    particles: { pos: vec3, vel: vec3, life: number, maxLife: number, colorIdx: number, scaleMultiplier: number }[] = [];
     static particleMeshes: Map<string, Gfx3Mesh> = new Map();
     static qMat = new Quaternion();
     colorKeys: string[] = [];
 
-    constructor(x: number, y: number, z: number, color: [number, number, number] = [1.0, 0.4, 0.0], direction?: vec3) {
+    constructor(x: number, y: number, z: number, color: [number, number, number] = [1.0, 0.4, 0.0], direction?: vec3, scaleMultiplier: number = 1.0) {
         const colorKey1 = `${color[0]},${color[1]},${color[2]}`;
         const color2 = [Math.min(1.0, color[0] * 1.5), Math.min(1.0, color[1] * 1.5), Math.min(1.0, color[2] * 1.5)];
         const colorKey2 = `${color2[0]},${color2[1]},${color2[2]}`;
@@ -25,35 +25,34 @@ export class Explosion {
             Explosion.particleMeshes.set(colorKey3, createBoxMesh(0.8, 0.8, 0.8, color3 as [number, number, number]));
         }
 
-        const numParticles = direction ? 12 : 20;
+        const numParticles = Math.floor((direction ? 12 : 20) * (scaleMultiplier >= 2 ? 2.5 : scaleMultiplier));
 
         for (let i = 0; i < numParticles; i++) {
-            const pos: vec3 = [x + (Math.random() - 0.5) * 0.5, y + (Math.random() - 0.5) * 0.5, z + (Math.random() - 0.5) * 0.5];
+            const pos: vec3 = [x + (Math.random() - 0.5) * 0.5 * scaleMultiplier, y + (Math.random() - 0.5) * 0.5 * scaleMultiplier, z + (Math.random() - 0.5) * 0.5 * scaleMultiplier];
             
             let vel: vec3;
             let life: number;
 
             if (direction) {
                 // Muzzle flash: cone spread
-                const speed = 15 + Math.random() * 25;
-                const spread = 0.8;
+                const speed = (15 + Math.random() * 25) * ((scaleMultiplier > 1) ? 1.5 : 1);
+                const spread = 0.8 * scaleMultiplier;
                 let dirX = direction[0] + (Math.random() - 0.5) * spread;
                 let dirY = direction[1] + (Math.random() - 0.5) * spread;
                 let dirZ = direction[2] + (Math.random() - 0.5) * spread;
                 vel = UT.VEC3_SCALE(UT.VEC3_NORMALIZE([dirX, dirY, dirZ]), speed);
-                life = 0.1 + Math.random() * 0.2;
+                life = (0.1 + Math.random() * 0.2) * (scaleMultiplier > 1 ? 1.5 : 1);
             } else {
                 // Explosion: spherical spread
-                const speed = 8 + Math.random() * 15;
+                const speed = (8 + Math.random() * 15) * scaleMultiplier;
                 let dirX = (Math.random() - 0.5) * 2;
                 let dirY = (Math.random() - 0.5) * 2 + 0.5; // bias upwards
                 let dirZ = (Math.random() - 0.5) * 2;
                 vel = UT.VEC3_SCALE(UT.VEC3_NORMALIZE([dirX, dirY, dirZ]), speed);
-                life = 0.4 + Math.random() * 0.6;
+                life = (0.4 + Math.random() * 0.6) * (scaleMultiplier > 1 ? 1.5 : 1);
             }
             
-            const colorIdx = Math.floor(Math.random() * 3);
-            this.particles.push({ pos, vel, life, maxLife: life, colorIdx });
+            this.particles.push({ pos, vel, life, maxLife: life, colorIdx: Math.floor(Math.random() * 3), scaleMultiplier });
         }
     }
 
@@ -85,7 +84,7 @@ export class Explosion {
                 if (!mesh) continue;
                 
                 let scale = Math.max(0, p.life / p.maxLife);
-                scale = scale * (1.0 + Math.random() * 0.5); // Add some flicker
+                scale = scale * (1.0 + Math.random() * 0.5) * p.scaleMultiplier; // Add some flicker and scale
                 
                 const ZERO: vec3 = [0,0,0];
                 const mat = UT.MAT4_TRANSFORM(p.pos, ZERO, [scale, scale, scale], Explosion.qMat);
